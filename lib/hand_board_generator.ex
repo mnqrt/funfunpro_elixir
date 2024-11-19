@@ -1,5 +1,5 @@
 defmodule Poker.HandBoardGenerator do
-  alias Poker.{Hand, Board}
+  alias Poker.Board
 
   def generate_hands(player_count) do
     fn deck ->

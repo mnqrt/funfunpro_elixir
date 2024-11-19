@@ -2,9 +2,11 @@ defmodule Poker.Deck do
   alias Poker.Card
 
   def generate do
-    Card.values()
-    |> Enum.flat_map(fn value ->
-      Card.suites() |> Enum.map(&Card.create(value, &1))
-    end)
+    Card.suites()
+    |> Enum.flat_map(
+      fn suites ->
+        Card.values() |> Enum.map(&Card.create(&1, suites))
+      end
+    )
   end
 end
