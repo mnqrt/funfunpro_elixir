@@ -2,7 +2,6 @@ defmodule Poker.Shuffle do
   alias Poker.Randomizer
 
   def shuffle_list_call(deck, rng_gen \\ &Randomizer.next_xorshift64/1, state \\ Randomizer.deterministic_seed()) do
-    # IO.inspect(deck)
     shuffle(deck, [], rng_gen, state)
   end
 
