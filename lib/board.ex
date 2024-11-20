@@ -2,6 +2,7 @@ defmodule Poker.Board do
   alias Poker.Card
   alias Poker.Validator
 
+  @enforce_keys [:card1, :card2, :card3, :card4, :card5]
   defstruct [:card1, :card2, :card3, :card4, :card5]
 
   @type t :: %Poker.Board{
@@ -12,6 +13,7 @@ defmodule Poker.Board do
     card5: Card.t()
   }
 
+  @spec create(Card.t(), Card.t(), Card.t(), Card.t(), Card.t()) :: Poker.Board.t()
   def create(card1, card2, card3, card4, card5) do
     Validator.validate_card(card1)
     Validator.validate_card(card2)
@@ -29,6 +31,7 @@ defmodule Poker.Board do
     }
   end
 
+  @spec example_print_board() :: any()
   def example_print_board do
     card1 = Poker.Card.create(1, "Spade")
     card2 = Poker.Card.create(13, "Heart")

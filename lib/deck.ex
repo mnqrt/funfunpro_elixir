@@ -1,6 +1,7 @@
 defmodule Poker.Deck do
   alias Poker.Card
 
+  @spec generate() :: list(Card.t())
   def generate do
     Card.suites()
     |> Enum.flat_map(
