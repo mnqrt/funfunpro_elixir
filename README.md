@@ -81,3 +81,21 @@ pada dasarnya, `shuffle` adalah fungsi yang menerima 4 parameter `(deck, acc, rn
 4. state: state sekarang. (Note: pengambilan elemen "random" itu berdasarkan state)
 
 Pada elixir, yang saya tangkap adalah mereka menghandle base case dengan `pattern matching`, yang artinya best practice di mereka yaitu bukan dengan early return seperti handling base case biasanya, tapi disini kita ngecek apakah `deck == []`, mirip dengan haskell. Hal lain yang bisa dinote adalah cara elixir memanggil referensi fungsi (misalkan dia di parameter, `rng_gen`), yaitu dengan `next_state = rng_gen.(state)`. Jadi sepertinya butuh waktu pembiasaan. `{el, remaining} = List.pop_at(deck, index)` juga salah satu contoh penerapan pattern matching.
+
+
+Kenapa kita membuat fungsi suites()? Padahal kan kita bisa langsung import variabel suite aja? Gunanya adalah supaya kita bisa lakukan piping.
+
+Sebagai contoh, berikut adalah fungsi yang mengembalikan list semua card, namun dalam bentuk yang formatted (string).
+
+```elixir
+  @spec format_card(Card.t()) :: String.t()
+  def format_card(card) do
+    card.suite <> " " <> Integer.to_string(card.value)
+  end
+
+  def print_deck() do
+    Deck.generate() |> Enum.map(&format_card/1)
+  end
+```
+
+Disini, fungsi generate() sebenarnya bisa digantikan dengan variabel saja, sebab nilainya akan selalu konstan (yaitu kumpulan semua card), namun dengan dibuatnya menjadi fungsi, hal ini mempermudah penggunaan piping, sehingga kita dapat memasukkan hasil dari semua card (tipe data card), kedalam map sebagai parameter pertama. Sehingga akan dihasilkan kumpulan semua kartu, namunyang telah diformat oleh `map`
