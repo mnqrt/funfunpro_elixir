@@ -20,3 +20,10 @@ defmodule Poker.Card do
     %Poker.Card{value: value, suite: suite}
   end
 end
+
+defimpl String.Chars, for: Poker.Card do
+  @spec to_string(Poker.Card.t()) :: String.t()
+  def to_string(card) do
+    "#{card.suite} #{card.value}"
+  end
+end
