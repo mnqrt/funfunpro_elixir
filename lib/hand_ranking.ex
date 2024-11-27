@@ -3,16 +3,14 @@ defmodule Poker.HandRanking do
 
   @suite_rank %{"Spade" => 4, "Heart" => 3, "Diamond" => 2, "Club" => 1}
 
+  @spec royal_flush?(boolean(), boolean(), Card.deck()) :: boolean()
   def royal_flush?(is_flush, is_straight, sorted_cards) do
     is_flush and is_straight and sorted_cards |> hd() |> Map.get(:value) == 13
   end
 
+  @spec straight_flush?(boolean(), boolean()) :: boolean()
   def straight_flush?(is_flush, is_straight) do
     is_flush and is_straight
-  end
-
-  def four_of_a_kind?(value_counts) do
-    Enum.any?(value_counts, fn {_, %{count: 4}} -> true; _ -> false end)
   end
 
   def full_house?(value_counts) do
@@ -41,31 +39,47 @@ defmodule Poker.HandRanking do
     end
   end
 
+  @spec count_num(map(), integer()) :: non_neg_integer()
+  defp count_num(value_counts, count) do
+    Enum.count(value_counts, fn {_, %{count: ^count}} -> true; _ -> false end)
+  end
+
+  @spec four_of_a_kind?(any()) :: boolean()
+  def four_of_a_kind?(value_counts) do
+    count_num(value_counts, 4) == 1
+  end
+
+  @spec three_of_a_kind?(map()) :: boolean()
   def three_of_a_kind?(value_counts) do
-    Enum.any?(value_counts, fn {_, %{count: 3}} -> true; _ -> false end)
+    count_num(value_counts, 3) >= 1
   end
 
+  @spec two_pair?(map()) :: boolean()
   def two_pair?(value_counts) do
-    Enum.count(value_counts, fn {_, %{count: 2}} -> true; _ -> false end) == 2
+    count_num(value_counts, 2) >= 2
   end
 
+  @spec one_pair?(map()) :: boolean()
   def one_pair?(value_counts) do
-    Enum.any?(value_counts, fn {_, %{count: 2}} -> true; _ -> false end)
+    count_num(value_counts, 2) >= 1
   end
 
+  @spec high_card?() :: true
   def high_card? do
     true
   end
 
+  @spec get_value_counts(Card.deck()) :: map()
   def get_value_counts(cards) do
     cards
     |> Enum.reduce(%{}, fn (%Card{value: value, suite: suite}, acc) ->
-      count = Map.get(acc, value, %{count: 0, suite_rank: 0})
-      new_count = %{count | count: count.count + 1, suite_rank: max(count.suite_rank, @suite_rank[suite])}
-      Map.put(acc, value, new_count)
-    end)
+        count = Map.get(acc, value, %{count: 0, suite_rank: 0})
+        new_count = %{count | count: count.count + 1, suite_rank: max(count.suite_rank, @suite_rank[suite])}
+        Map.put(acc, value, new_count)
+      end)
   end
 
+  @spec hand_rank(Card.deck()) :: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10
   def hand_rank(sorted_cards) do
     is_flush = is_flush?(sorted_cards)
     is_straight = is_straight?(sorted_cards)
