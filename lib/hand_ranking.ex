@@ -5,7 +5,7 @@ defmodule Poker.HandRanking do
 
   @spec royal_flush?(boolean(), boolean(), Card.deck()) :: boolean()
   def royal_flush?(is_flush, is_straight, sorted_cards) do
-    is_flush and is_straight and sorted_cards |> hd() |> Map.get(:value) == 13
+    straight_flush?(is_flush, is_straight) and sorted_cards |> hd() |> Map.get(:value) == 13
   end
 
   @spec straight_flush?(boolean(), boolean()) :: boolean()
@@ -13,26 +13,37 @@ defmodule Poker.HandRanking do
     is_flush and is_straight
   end
 
+  @spec full_house_checker(list(non_neg_integer())) :: boolean()
+  defp full_house_checker(counts), do: counts == [2, 3] or counts == [3, 3]
+
+  @spec full_house?(map()) :: boolean()
   def full_house?(value_counts) do
     Enum.filter(value_counts, fn {_, %{count: c}} -> c in [2, 3] end)
     |> Enum.map(fn {_, %{count: c}} -> c end)
     |> Enum.sort()
-    |> (&(&1 == [2, 3] or &1 == [3, 3])).()
+    |> (&full_house_checker/1).()
   end
 
-  def is_flush?(cards) do
-    cards
-    |> Enum.group_by(& &1.suite)
-    |> Enum.any?(fn {_suite, grouped_cards} -> length(grouped_cards) >= 5 end)
+  @spec is_flush?(Card.deck()) :: boolean()
+  def is_flush?(sorted_cards) do
+    sorted_cards
+    |> Enum.group_by(&(&1.suite))
+    |> Enum.any?(fn {_, grouped_cards} -> length(grouped_cards) >= 5 end)
   end
 
-  def is_straight?(cards) do
-    cards |> Enum.map(& &1.value) |> Enum.uniq() |> Enum.sort() |> consecutive_count(5)
+  @spec is_straight?(Card.deck()) :: boolean()
+  def is_straight?(sorted_cards) do
+    sorted_cards
+    |> Enum.map(&(&1.value))
+    |> Enum.uniq()
+    |> Enum.sort()
+    |> consecutive_count(5)
   end
 
+  @spec consecutive_count(list(non_neg_integer()), non_neg_integer()) :: boolean()
   defp consecutive_count(values, count) do
     case values do
-      [a, b | rest] when b == a + 1 -> consecutive_count([b | rest], count - 1)
+      [a, b | rest] when b + 1 == a -> consecutive_count([b | rest], count - 1)
       [_ | rest] when count > 1 -> consecutive_count(rest, 5)
       _ when count <= 1 -> true
       _ -> false
