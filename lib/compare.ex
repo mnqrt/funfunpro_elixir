@@ -5,7 +5,7 @@ defmodule Poker.Rank do
 
   def compare_card_value(%Card{value: value_a, suite: suite_a}, %Card{value: value_b, suite: suite_b}) do
     case {value_a, value_b} do
-      {a, b} when a != b -> b - a
+      {a, b} when a != b -> a - b
       _ -> @suite_rank[suite_b] - @suite_rank[suite_a]
     end
   end
@@ -31,12 +31,13 @@ defmodule Poker.Rank do
 
     rank1 = rank_hand(full_hand1)
     rank2 = rank_hand(full_hand2)
+    comparison = compare_card(rank1.high_card, rank2.high_card)
 
     cond do
       rank1.rank > rank2.rank -> "Hand1"
       rank2.rank > rank1.rank -> "Hand2"
-      compare_card(rank1.high_card, rank2.high_card) > 0 -> "Hand1"
-      compare_card(rank1.high_card, rank2.high_card) < 0 -> "Hand2"
+      comparison > 0 -> "Hand1"
+      comparison < 0 -> "Hand2"
       true -> "Tie"
     end
   end
