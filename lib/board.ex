@@ -50,3 +50,10 @@ defmodule Poker.Board do
 end
 
 Poker.Board.example_print_board()
+
+defimpl String.Chars, for: Poker.Board do
+  @spec to_string(Poker.Board.t()) :: String.t()
+  def to_string(board) do
+    "Board - (#{board.card1}, #{board.card2}, #{board.card3}, #{board.card4}, #{board.card5})"
+  end
+end

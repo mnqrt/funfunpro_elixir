@@ -31,3 +31,10 @@ defmodule Poker.Hand do
 end
 
 Poker.Hand.print_example_hand()
+
+defimpl String.Chars, for: Poker.Hand do
+  @spec to_string(Poker.Hand.t()) :: String.t()
+  def to_string(hand) do
+    "Hand - (#{hand.card1}, #{hand.card2})"
+  end
+end
