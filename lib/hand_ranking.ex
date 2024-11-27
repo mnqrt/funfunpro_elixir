@@ -21,7 +21,7 @@ defmodule Poker.HandRanking do
     Enum.filter(value_counts, fn {_, %{count: c}} -> c in [2, 3] end)
     |> Enum.map(fn {_, %{count: c}} -> c end)
     |> Enum.sort()
-    |> (&full_house_checker/1).()
+    |> full_house_checker()
   end
 
   @spec is_flush?(Card.deck()) :: boolean()
@@ -43,7 +43,7 @@ defmodule Poker.HandRanking do
   @spec consecutive_count(list(non_neg_integer()), non_neg_integer()) :: boolean()
   defp consecutive_count(values, count) do
     case values do
-      [a, b | rest] when b + 1 == a -> consecutive_count([b | rest], count - 1)
+      [a, b | rest] when b == a + 1 -> consecutive_count([b | rest], count - 1)
       [_ | rest] when count > 1 -> consecutive_count(rest, 5)
       _ when count <= 1 -> true
       _ -> false

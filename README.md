@@ -99,3 +99,129 @@ Sebagai contoh, berikut adalah fungsi yang mengembalikan list semua card, namun 
 ```
 
 Disini, fungsi generate() sebenarnya bisa digantikan dengan variabel saja, sebab nilainya akan selalu konstan (yaitu kumpulan semua card), namun dengan dibuatnya menjadi fungsi, hal ini mempermudah penggunaan piping, sehingga kita dapat memasukkan hasil dari semua card (tipe data card), kedalam map sebagai parameter pertama. Sehingga akan dihasilkan kumpulan semua kartu, namunyang telah diformat oleh `map`
+
+### `count_num`
+```elixir
+  @spec count_num(map(), integer()) :: non_neg_integer()
+  defp count_num(value_counts, count) do
+    Enum.count(value_counts, fn {_, %{count: ^count}} -> true; _ -> false end)
+  end
+```
+
+Pada `hand_ranking.ex`, sebelumnya, fungsi-fungsi seperti `one_pair?`, `two_pair?`, `three_of_a_kind?`, serta `four_of_a_kind?` melakukan hal yang sama, yaitu menghitung ada berapa banyak value pada `value_counts` yang `count` nya `2` untuk `pair`, `3` untuk `three of a kind`, dan `4` untuk `four of a kind`. Untuk menghindari duplikasi dan mempersimpel kode, kami membuat fungsi privat `count_num` yang akan menghitung ada berapa banyak value yang banyak `count`nya tergantung input dari fungsinya.
+
+### `full_house?`
+```elixir
+  @spec full_house_checker(list(non_neg_integer())) :: boolean()
+  defp full_house_checker(counts), do: counts == [2, 3] or counts == [3, 3]
+
+  @spec full_house?(map()) :: boolean()
+  def full_house?(value_counts) do
+    Enum.filter(value_counts, fn {_, %{count: c}} -> c in [2, 3] end)
+    |> Enum.map(fn {_, %{count: c}} -> c end)
+    |> Enum.sort()
+    |> full_house_checker()
+  end
+```
+
+Fungsi ini sekilas cukup sulit dibaca, terutama untuk yang tidak terbiasa dengan sintaks `Elixir`, namun jika dibedah perlahan, fungsi ini ternyata cukup simpel.
+
+```elixir
+Enum.filter(value_counts, fn {_, %{count: c}} -> c in [2, 3] end)
+```
+
+Bagian ini melakukan filter terhadap `value_counts` untuk mengambil semua entry dimana `count` nya bernilai 2 atau 3. Misal `value_counts` seperti di bawah.
+```elixir
+%{
+  2 => %{count: 1, suite_rank: 4},
+  10 => %{count: 2, suite_rank: 4},
+  11 => %{count: 2, suite_rank: 4},
+  12 => %{count: 1, suite_rank: 3},
+  13 => %{count: 1, suite_rank: 3}
+}
+```
+Hasil filtrasi dari `value_counts` di atas adalah `[{10, %{count: 2, suite_rank: 4}}, {11, %{count: 2, suite_rank: 4}}]`
+
+```elixir
+|> Enum.map(fn {_, %{count: c}} -> c end)
+```
+
+Hasil filtrasi diteruskan ke sebuah fungsi yang akan mengambil hanya value dari `count` nya saja. Misal dengan hasil filtrasi di atas, hasil piping ke fungsi tersebut akan mengembalikan `[2, 2]`.
+
+```elixir
+|> Enum.sort()
+```
+
+Fungsi ini seharusnya sudah cukup jelas. Return value dari fungsi sebelumnya akan di sort secara ascending (default Elixir).
+
+```elixir
+|> full_house_checker()
+```
+
+Bagian ini akan memasukkan hasil sorting ke fungsi privat `full_house_checker` yang akan mengecek apakah hasil sorting merupakan list `[2, 3]` atau `[3, 3]` saja.
+
+### `is_flush?`
+```elixir
+  @spec is_flush?(Card.deck()) :: boolean()
+  def is_flush?(sorted_cards) do
+    sorted_cards
+    |> Enum.group_by(&(&1.suite))
+    |> Enum.any?(fn {_, grouped_cards} -> length(grouped_cards) >= 5 end)
+  end
+```
+
+Fungsi ini mungkin lebih mudah dibaca dibanding fungsi `full_house?` sebelumnya, namun terdapat bagian yang cukup menarik, yaitu `|> Enum.group_by(&(&1.suite))`. Bagian ini sebenarnya mengambil `sorted_cards` dan akan melakukan grouping berdasarkan `suite` dari card-card yang ada di `sorted_cards`. Misal terdapat `sorted_cards` sebagai berikut.
+```elixir
+[
+  %Poker.Card{value: 13, suite: "Heart"},
+  %Poker.Card{value: 12, suite: "Heart"},
+  %Poker.Card{value: 12, suite: "Spade"},
+  %Poker.Card{value: 10, suite: "Spade"},
+  %Poker.Card{value: 5, suite: "Club"},
+  %Poker.Card{value: 5, suite: "Heart"},
+  %Poker.Card{value: 5, suite: "Spade"}
+]
+```
+
+Ketika `sorted_cards` ini dimasukkan ke fungsi `Enum.groupby` dengan fungsi yang mengambil `suite` dari card yang ada di dalamnya, akan dihasilkan grouping sebagai berikut.
+```elixir
+%{
+  "Club" => [%Poker.Card{value: 5, suite: "Club"}],
+  "Heart" => [
+    %Poker.Card{value: 13, suite: "Heart"},
+    %Poker.Card{value: 12, suite: "Heart"},
+    %Poker.Card{value: 5, suite: "Heart"}
+  ],
+  "Spade" => [
+    %Poker.Card{value: 12, suite: "Spade"},
+    %Poker.Card{value: 10, suite: "Spade"},
+    %Poker.Card{value: 5, suite: "Spade"}
+  ]
+}
+```
+
+Hasil grouping ini nantinya akan dilihat apakah ada yang panjangnya lebih dari atau sama dengan 5 untuk menentukan apakah hand ini flush atau tidak.
+
+### `is_straight?`
+```elixir
+  @spec is_straight?(Card.deck()) :: boolean()
+  def is_straight?(sorted_cards) do
+    sorted_cards
+    |> Enum.map(&(&1.value))
+    |> Enum.uniq()
+    |> Enum.sort()
+    |> consecutive_count(5)
+  end
+
+  @spec consecutive_count(list(non_neg_integer()), non_neg_integer()) :: boolean()
+  defp consecutive_count(values, count) do
+    case values do
+      [a, b | rest] when b == a + 1 -> consecutive_count([b | rest], count - 1)
+      [_ | rest] when count > 1 -> consecutive_count(rest, 5)
+      _ when count <= 1 -> true
+      _ -> false
+    end
+  end
+```
+
+Fungsi `is_straight?` juga jauh lebih mudah dimengerti dibandingkan dengan fungsi `full_house?` di atas. Fungsi ini pada dasarnya mengambil semua `value` dari card yang ada pada `sorted_cards` kemudian diambil value-value yang unik dan di sort secara ascending (default). Hasil sorting ini nantinya akan dimasukkan ke fungsi `consecutive_count` yang akan mengecek apakah elemen kedua dengan elemen pertama hanya memiliki perbedaan sebesar 1.
