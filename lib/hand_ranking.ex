@@ -3,6 +3,11 @@ defmodule Poker.HandRanking do
 
   @suite_rank %{"Spade" => 4, "Heart" => 3, "Diamond" => 2, "Club" => 1}
 
+  @type val_count :: %{count: non_neg_integer(), suite_rank: 1 | 2 | 3 | 4}
+
+  @spec suite_rank() :: %{String.t() => 1 | 2 | 3 | 4}
+  def suite_rank, do: @suite_rank
+
   @spec royal_flush?(boolean(), boolean(), Card.deck()) :: boolean()
   def royal_flush?(is_flush, is_straight, sorted_cards) do
     straight_flush?(is_flush, is_straight) and sorted_cards |> hd() |> Map.get(:value) == 13
@@ -16,7 +21,7 @@ defmodule Poker.HandRanking do
   @spec full_house_checker(list(non_neg_integer())) :: boolean()
   defp full_house_checker(counts), do: counts == [2, 3] or counts == [3, 3]
 
-  @spec full_house?(map()) :: boolean()
+  @spec full_house?(val_count()) :: boolean()
   def full_house?(value_counts) do
     Enum.filter(value_counts, fn {_, %{count: c}} -> c in [2, 3] end)
     |> Enum.map(fn {_, %{count: c}} -> c end)
@@ -50,27 +55,27 @@ defmodule Poker.HandRanking do
     end
   end
 
-  @spec count_num(map(), integer()) :: non_neg_integer()
+  @spec count_num(val_count(), non_neg_integer()) :: non_neg_integer()
   defp count_num(value_counts, count) do
     Enum.count(value_counts, fn {_, %{count: ^count}} -> true; _ -> false end)
   end
 
-  @spec four_of_a_kind?(any()) :: boolean()
+  @spec four_of_a_kind?(val_count()) :: boolean()
   def four_of_a_kind?(value_counts) do
     count_num(value_counts, 4) == 1
   end
 
-  @spec three_of_a_kind?(map()) :: boolean()
+  @spec three_of_a_kind?(val_count()) :: boolean()
   def three_of_a_kind?(value_counts) do
     count_num(value_counts, 3) >= 1
   end
 
-  @spec two_pair?(map()) :: boolean()
+  @spec two_pair?(val_count()) :: boolean()
   def two_pair?(value_counts) do
     count_num(value_counts, 2) >= 2
   end
 
-  @spec one_pair?(map()) :: boolean()
+  @spec one_pair?(val_count()) :: boolean()
   def one_pair?(value_counts) do
     count_num(value_counts, 2) >= 1
   end
@@ -80,7 +85,7 @@ defmodule Poker.HandRanking do
     true
   end
 
-  @spec get_value_counts(Card.deck()) :: map()
+  @spec get_value_counts(Card.deck()) :: val_count()
   def get_value_counts(cards) do
     cards
     |> Enum.reduce(%{}, fn (%Card{value: value, suite: suite}, acc) ->

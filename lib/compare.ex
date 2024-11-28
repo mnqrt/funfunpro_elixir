@@ -1,23 +1,32 @@
 defmodule Poker.Rank do
-  alias Poker.{Card, Hand, HandRanking}
+  alias Poker.{Board, Card, Hand, HandRanking}
 
-  @suite_rank %{"Spade" => 4, "Heart" => 3, "Diamond" => 2, "Club" => 1}
-
+  @spec compare_card_value(Card.t(), Card.t()) :: integer()
   def compare_card_value(%Card{value: value_a, suite: suite_a}, %Card{value: value_b, suite: suite_b}) do
+    suite_rank = HandRanking.suite_rank()
+
     case {value_a, value_b} do
       {a, b} when a != b -> a - b
-      _ -> @suite_rank[suite_b] - @suite_rank[suite_a]
+      _ -> suite_rank[suite_a] - suite_rank[suite_b]
     end
   end
 
+  @spec compare_card(Card.t(), Card.t()) :: boolean()
   def compare_card(card1, card2) do
     compare_card_value(card1, card2) > 0
   end
 
-  def sort_cards(cards) do
-    Enum.sort(cards, &compare_card/2)
+  @spec sort_cards(Card.deck(), boolean()) :: Card.deck()
+  def sort_cards(cards, ascending \\ true) do
+    sorted = Enum.sort(cards, &compare_card/2)
+    unless ascending do
+      Enum.reverse(sorted)
+    else
+      sorted
+    end
   end
 
+  @spec rank_hand(Card.deck()) :: map()
   def rank_hand(cards) do
     sorted_cards = sort_cards(cards)
 
@@ -25,13 +34,17 @@ defmodule Poker.Rank do
     %{rank: rank, high_card: hd(sorted_cards)}
   end
 
+  @spec compare_hands(Board.t(), Hand.t(), Hand.t()) :: String.t()
   def compare_hands(board, %Hand{card1: card1a, card2: card2a}, %Hand{card1: card1b, card2: card2b}) do
     full_hand1 = [card1a, card2a, board.card1, board.card2, board.card3, board.card4, board.card5]
     full_hand2 = [card1b, card2b, board.card1, board.card2, board.card3, board.card4, board.card5]
 
-    rank1 = rank_hand(full_hand1)
-    rank2 = rank_hand(full_hand2)
-    comparison = compare_card(rank1.high_card, rank2.high_card)
+    task1 = Task.async(fn -> rank_hand(full_hand1) end)
+    task2 = Task.async(fn -> rank_hand(full_hand2) end)
+
+    rank1 = Task.await(task1)
+    rank2 = Task.await(task2)
+    comparison = compare_card_value(rank1.high_card, rank2.high_card)
 
     cond do
       rank1.rank > rank2.rank -> "Hand1"
