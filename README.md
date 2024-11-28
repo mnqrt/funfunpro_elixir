@@ -225,3 +225,47 @@ Hasil grouping ini nantinya akan dilihat apakah ada yang panjangnya lebih dari a
 ```
 
 Fungsi `is_straight?` juga jauh lebih mudah dimengerti dibandingkan dengan fungsi `full_house?` di atas. Fungsi ini pada dasarnya mengambil semua `value` dari card yang ada pada `sorted_cards` kemudian diambil value-value yang unik dan di sort secara ascending (default). Hasil sorting ini nantinya akan dimasukkan ke fungsi `consecutive_count` yang akan mengecek apakah elemen kedua dengan elemen pertama hanya memiliki perbedaan sebesar 1.
+
+###  `compare_hands`
+```elixir
+  @spec compare_card_value(Card.t(), Card.t()) :: integer()
+  def compare_card_value(%Card{value: value_a, suite: suite_a}, %Card{value: value_b, suite: suite_b}) do
+    suite_rank = HandRanking.suite_rank()
+
+    cond do
+      value_a != value_b -> value_a - value_b
+      true -> suite_rank[suite_a] - suite_rank[suite_b]
+    end
+  end
+
+  @spec rank_hand(Card.deck()) :: %{rank: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10, high_card: Card.t()}
+  def rank_hand(cards) do
+    sorted_cards = sort_cards(cards)
+
+    rank = sorted_cards |> HandRanking.hand_rank()
+    %{rank: rank, high_card: hd(sorted_cards)}
+  end
+
+  @spec compare_hands(Board.t(), Hand.t(), Hand.t()) :: String.t()
+  def compare_hands(board, %Hand{card1: card1a, card2: card2a}, %Hand{card1: card1b, card2: card2b}) do
+    full_hand1 = [card1a, card2a, board.card1, board.card2, board.card3, board.card4, board.card5]
+    full_hand2 = [card1b, card2b, board.card1, board.card2, board.card3, board.card4, board.card5]
+
+    task1 = Task.async(fn -> rank_hand(full_hand1) end)
+    task2 = Task.async(fn -> rank_hand(full_hand2) end)
+
+    rank1 = Task.await(task1)
+    rank2 = Task.await(task2)
+    comparison = compare_card_value(rank1.high_card, rank2.high_card)
+
+    cond do
+      rank1.rank > rank2.rank -> "Hand1"
+      rank2.rank > rank1.rank -> "Hand2"
+      comparison > 0 -> "Hand1"
+      comparison < 0 -> "Hand2"
+      true -> "Tie"
+    end
+  end
+```
+
+Fungsi ini pada dasarnya akan melakukan comparison antara 2 `Hand` melalui fungsi `rank_hand` secara asinkronus lalu mengecek antara `high_card` melalui `compare_card_value` dan baru di cek yang mana yang lebih besar. Block `cond` berlaku seperti block `if` yang memiliki banyak kasus, namun membuat kasus-kasus tersebut lebih mudah dibaca dengan menggunakan banyak `if`.

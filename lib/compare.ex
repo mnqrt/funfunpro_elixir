@@ -5,9 +5,9 @@ defmodule Poker.Rank do
   def compare_card_value(%Card{value: value_a, suite: suite_a}, %Card{value: value_b, suite: suite_b}) do
     suite_rank = HandRanking.suite_rank()
 
-    case {value_a, value_b} do
-      {a, b} when a != b -> a - b
-      _ -> suite_rank[suite_a] - suite_rank[suite_b]
+    cond do
+      value_a != value_b -> value_a - value_b
+      true -> suite_rank[suite_a] - suite_rank[suite_b]
     end
   end
 
@@ -17,6 +17,7 @@ defmodule Poker.Rank do
   end
 
   @spec sort_cards(Card.deck(), boolean()) :: Card.deck()
+  @spec sort_cards(Card.deck()) :: Card.deck()
   def sort_cards(cards, ascending \\ true) do
     sorted = Enum.sort(cards, &compare_card/2)
     unless ascending do
@@ -26,7 +27,7 @@ defmodule Poker.Rank do
     end
   end
 
-  @spec rank_hand(Card.deck()) :: map()
+  @spec rank_hand(Card.deck()) :: %{rank: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10, high_card: Card.t()}
   def rank_hand(cards) do
     sorted_cards = sort_cards(cards)
 
