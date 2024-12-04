@@ -1,18 +1,27 @@
 defmodule Poker.Randomizer do
+  @moduledoc """
+  Defines PRNGs for shuffling a deck of `Poker.Card`
+  """
+
   import Bitwise
 
-  @spec deterministic_seed(integer()) :: integer()
-  @spec deterministic_seed() :: integer()
-  def deterministic_seed(seed \\ get_now()), do: seed
-
+  @doc """
+  Get the current time in seconds.
+  """
   @spec get_now() :: integer()
   def get_now(), do: System.os_time(:second)
 
+  @doc """
+  Get the current time forwarded by 1 day.
+  """
   @spec get_tomorrow() :: integer()
   def get_tomorrow() do
     DateTime.now!("Etc/UTC") |> DateTime.shift(day: 1) |> DateTime.to_unix()
   end
 
+  @doc """
+  Defines the Xorshift64 PRNG
+  """
   @spec next_xorshift64(integer()) :: integer()
   def next_xorshift64(state) do
     a = bxor(state, bsl(state, 13))
@@ -20,7 +29,10 @@ defmodule Poker.Randomizer do
     bxor(b, bsl(b, 17))
   end
 
-@spec next_mod(integer()) :: (integer() -> integer())
+  @doc """
+  Defines a PRNG based on modular arithmetic
+  """
+  @spec next_mod(integer()) :: (integer() -> integer())
   def next_mod(mod) do
     fn state ->
       if state + mod > 52 do
@@ -31,6 +43,9 @@ defmodule Poker.Randomizer do
     end
   end
 
+  @doc """
+  Returns the `value` in the `modulus` ring.
+  """
   @spec modulo(integer(), integer()) :: integer()
   def modulo(value, modulus), do: rem(value, modulus)
 end

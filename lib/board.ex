@@ -1,4 +1,7 @@
 defmodule Poker.Board do
+  @moduledoc """
+  Defines the `Poker.Board` type and its functions
+  """
   alias Poker.Card
   alias Poker.Validator
 
@@ -6,13 +9,16 @@ defmodule Poker.Board do
   defstruct [:card1, :card2, :card3, :card4, :card5]
 
   @type t :: %Poker.Board{
-    card1: Card.t(),
-    card2: Card.t(),
-    card3: Card.t(),
-    card4: Card.t(),
-    card5: Card.t()
-  }
+          card1: Card.t(),
+          card2: Card.t(),
+          card3: Card.t(),
+          card4: Card.t(),
+          card5: Card.t()
+        }
 
+  @doc """
+  Creates a new `Poker.Board` given all cards have valid `value` and `suite`.
+  """
   @spec create(Card.t(), Card.t(), Card.t(), Card.t(), Card.t()) :: Poker.Board.t()
   def create(card1, card2, card3, card4, card5) do
     Validator.validate_card(card1)
@@ -20,7 +26,6 @@ defmodule Poker.Board do
     Validator.validate_card(card3)
     Validator.validate_card(card4)
     Validator.validate_card(card5)
-
 
     %Poker.Board{
       card1: card1,

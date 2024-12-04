@@ -1,6 +1,17 @@
 defmodule Poker.Rank do
+  @moduledoc """
+  Defines functions to rank `Poker.Hand`s
+  """
+
   alias Poker.{Board, Card, Hand, HandRanking}
-  @spec rank_hand(Card.deck()) :: %{rank: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10, high_card: Card.t()}
+
+  @doc """
+  Ranks a given full hand (`Poker.Hand` + `Poker.Board`)
+  """
+  @spec rank_hand(Card.deck()) :: %{
+          rank: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10,
+          high_card: Card.t()
+        }
   def rank_hand(cards) do
     cards
     |> HandRanking.sort_cards()
@@ -8,8 +19,14 @@ defmodule Poker.Rank do
     |> HandRanking.determine_rank()
   end
 
+  @doc """
+  Compares 2 `Poker.Hand` and returns the winner.
+  """
   @spec compare_hands(Board.t(), Hand.t(), Hand.t()) :: String.t()
-  def compare_hands(board, %Hand{card1: card1a, card2: card2a}, %Hand{card1: card1b, card2: card2b}) do
+  def compare_hands(board, %Hand{card1: card1a, card2: card2a}, %Hand{
+        card1: card1b,
+        card2: card2b
+      }) do
     full_hand1 = [card1a, card2a, board.card1, board.card2, board.card3, board.card4, board.card5]
     full_hand2 = [card1b, card2b, board.card1, board.card2, board.card3, board.card4, board.card5]
 
@@ -31,6 +48,7 @@ defmodule Poker.Rank do
 end
 
 alias Poker.{Card, Hand, Board, Rank}
+
 hand1 = %Hand{
   card1: %Card{value: 10, suite: "Heart"},
   card2: %Card{value: 11, suite: "Heart"}
