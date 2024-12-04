@@ -95,23 +95,73 @@ defmodule Poker.HandRanking do
       end)
   end
 
-  @spec hand_rank(Card.deck()) :: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10
-  def hand_rank(sorted_cards) do
-    is_flush = is_flush?(sorted_cards)
-    is_straight = is_straight?(sorted_cards)
-    value_counts = get_value_counts(sorted_cards)
+  @spec compare_card_value(Card.t(), Card.t()) :: integer()
+  def compare_card_value(%Card{value: value_a, suite: suite_a}, %Card{value: value_b, suite: suite_b}) do
+    suite_rank = suite_rank()
 
     cond do
-      royal_flush?(is_flush, is_straight, sorted_cards) -> 10
-      straight_flush?(is_flush, is_straight) -> 9
-      four_of_a_kind?(value_counts) -> 8
-      full_house?(value_counts) -> 7
-      is_flush -> 6
-      is_straight -> 5
-      three_of_a_kind?(value_counts) -> 4
-      two_pair?(value_counts) -> 3
-      one_pair?(value_counts) -> 2
-      high_card?() -> 1
+      value_a != value_b -> value_a - value_b
+      true -> suite_rank[suite_a] - suite_rank[suite_b]
     end
   end
+
+  @spec compare_card(Card.t(), Card.t()) :: boolean()
+  def compare_card(card1, card2) do
+    compare_card_value(card1, card2) > 0
+  end
+
+  @spec sort_cards(Card.deck(), boolean()) :: Card.deck()
+  @spec sort_cards(Card.deck()) :: Card.deck()
+  def sort_cards(cards, ascending \\ true) do
+    sorted = Enum.sort(cards, &compare_card/2)
+    unless ascending do
+      Enum.reverse(sorted)
+    else
+      sorted
+    end
+  end
+
+  @spec process_sorted_cards(Card.deck()) :: %{
+    sorted_cards: Card.deck(),
+    is_flush: boolean(),
+    is_straight: boolean(),
+    value_counts: val_count(),
+    high_card: Card.t()
+  }
+  def process_sorted_cards(sorted_cards) do
+    %{
+      sorted_cards: sorted_cards,
+      is_flush: is_flush?(sorted_cards),
+      is_straight: is_straight?(sorted_cards),
+      value_counts: get_value_counts(sorted_cards),
+      high_card: hd(sorted_cards)
+    }
+  end
+
+  @spec determine_rank(map()) :: %{rank: integer(), high_card: Card.t()}
+  def determine_rank(%{
+        is_flush: is_flush,
+        is_straight: is_straight,
+        value_counts: value_counts,
+        high_card: high_card,
+        sorted_cards: sorted_cards
+      }) do
+    rank_conditions = [
+      {10, fn -> royal_flush?(is_flush, is_straight, sorted_cards) end},
+      {9, fn -> straight_flush?(is_flush, is_straight) end},
+      {8, fn -> four_of_a_kind?(value_counts) end},
+      {7, fn -> full_house?(value_counts) end},
+      {6, fn -> is_flush end},
+      {5, fn -> is_straight end},
+      {4, fn -> three_of_a_kind?(value_counts) end},
+      {3, fn -> two_pair?(value_counts) end},
+      {2, fn -> one_pair?(value_counts) end},
+      {1, fn -> high_card?() end}
+    ]
+
+    rank = Enum.find_value(rank_conditions, fn {rank, condition} -> if condition.(), do: rank end)
+
+    %{rank: rank, high_card: high_card}
+  end
+
 end

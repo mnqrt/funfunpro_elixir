@@ -1,38 +1,11 @@
 defmodule Poker.Rank do
   alias Poker.{Board, Card, Hand, HandRanking}
-
-  @spec compare_card_value(Card.t(), Card.t()) :: integer()
-  def compare_card_value(%Card{value: value_a, suite: suite_a}, %Card{value: value_b, suite: suite_b}) do
-    suite_rank = HandRanking.suite_rank()
-
-    cond do
-      value_a != value_b -> value_a - value_b
-      true -> suite_rank[suite_a] - suite_rank[suite_b]
-    end
-  end
-
-  @spec compare_card(Card.t(), Card.t()) :: boolean()
-  def compare_card(card1, card2) do
-    compare_card_value(card1, card2) > 0
-  end
-
-  @spec sort_cards(Card.deck(), boolean()) :: Card.deck()
-  @spec sort_cards(Card.deck()) :: Card.deck()
-  def sort_cards(cards, ascending \\ true) do
-    sorted = Enum.sort(cards, &compare_card/2)
-    unless ascending do
-      Enum.reverse(sorted)
-    else
-      sorted
-    end
-  end
-
   @spec rank_hand(Card.deck()) :: %{rank: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10, high_card: Card.t()}
   def rank_hand(cards) do
-    sorted_cards = sort_cards(cards)
-
-    rank = sorted_cards |> HandRanking.hand_rank()
-    %{rank: rank, high_card: hd(sorted_cards)}
+    cards
+    |> HandRanking.sort_cards()
+    |> HandRanking.process_sorted_cards()
+    |> HandRanking.determine_rank()
   end
 
   @spec compare_hands(Board.t(), Hand.t(), Hand.t()) :: String.t()
@@ -45,7 +18,7 @@ defmodule Poker.Rank do
 
     rank1 = Task.await(task1)
     rank2 = Task.await(task2)
-    comparison = compare_card_value(rank1.high_card, rank2.high_card)
+    comparison = HandRanking.compare_card_value(rank1.high_card, rank2.high_card)
 
     cond do
       rank1.rank > rank2.rank -> "Hand1"
