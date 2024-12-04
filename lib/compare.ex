@@ -45,6 +45,56 @@ defmodule Poker.Rank do
       true -> "Tie"
     end
   end
+
+  @doc """
+  Grabs the first value from `deck` and add it to the current hand
+  """
+  @spec hit(list(Card.t()), Card.deck()) :: {list(Card.t()), Card.deck()}
+  def hit(hand, [first | deck]), do: {[first | hand], deck}
+
+  @doc """
+  Hits until the total value of hand is at least `stop_val`.
+  `stop_val` can only be in the range [1..21]
+  """
+  @spec hit_until(non_neg_integer()) :: ((list(Card.t()), Card.deck()) -> {list(Card.t()), Card.deck()})
+  def hit_until(stop_val) when stop_val > 0 and stop_val < 22 do
+    fn hand, deck ->
+      {result, rest} = hit(hand, deck)
+      value = Enum.map(result, &(&1.value)) |> Enum.sum()
+      if value < stop_val do
+        hit_until(stop_val).(result, rest)
+      else
+        {result, rest}
+      end
+    end
+  end
+
+  @doc """
+  When the player stands, the dealer gets to hit until the total
+  value of their hand is at least 17.
+  """
+  @spec stand(list(Card.t()), Card.deck()) :: {list(Card.t()), Card.deck()}
+  def stand(dealer, deck), do: hit_until(17).(dealer, deck)
+
+  @doc """
+  Compares the player's hand with the dealer's hand and determines
+  the winner.
+  """
+  @spec compare_blackjack(list(Card.t()), list(Card.t())) :: String.t()
+  def compare_blackjack(player, dealer) do
+    player_val = get_sum(player)
+    dealer_val = get_sum(dealer)
+
+    cond do
+      player_val > 21 -> "Dealer Wins"
+      dealer_val > 21 -> "Player Wins"
+      player_val > dealer_val -> "Player Wins"
+      dealer_val > player_val -> "Dealer Wins"
+      true -> "Tie"
+    end
+  end
+
+  defp get_sum(hand), do: hand |> Enum.map(&(&1.value)) |> Enum.sum()
 end
 
 alias Poker.{Card, Hand, Board, Rank}
