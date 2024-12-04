@@ -8,91 +8,12 @@ defmodule Poker.HandRanking do
   @spec suite_rank() :: %{String.t() => 1 | 2 | 3 | 4}
   def suite_rank, do: @suite_rank
 
-  @spec royal_flush?(boolean(), boolean(), Card.deck()) :: boolean()
-  def royal_flush?(is_flush, is_straight, sorted_cards) do
-    straight_flush?(is_flush, is_straight) and sorted_cards |> hd() |> Map.get(:value) == 13
-  end
-
-  @spec straight_flush?(boolean(), boolean()) :: boolean()
-  def straight_flush?(is_flush, is_straight) do
-    is_flush and is_straight
-  end
-
-  @spec full_house_checker(list(non_neg_integer())) :: boolean()
-  defp full_house_checker(counts), do: counts == [2, 3] or counts == [3, 3]
-
-  @spec full_house?(val_count()) :: boolean()
-  def full_house?(value_counts) do
-    Enum.filter(value_counts, fn {_, %{count: c}} -> c in [2, 3] end)
-    |> Enum.map(fn {_, %{count: c}} -> c end)
-    |> Enum.sort()
-    |> full_house_checker()
-  end
-
-  @spec is_flush?(Card.deck()) :: boolean()
-  def is_flush?(sorted_cards) do
-    sorted_cards
-    |> Enum.group_by(&(&1.suite))
-    |> Enum.any?(fn {_, grouped_cards} -> length(grouped_cards) >= 5 end)
-  end
-
-  @spec is_straight?(Card.deck()) :: boolean()
-  def is_straight?(sorted_cards) do
-    sorted_cards
-    |> Enum.map(&(&1.value))
-    |> Enum.uniq()
-    |> Enum.sort()
-    |> consecutive_count(5)
-  end
-
-  @spec consecutive_count(list(non_neg_integer()), non_neg_integer()) :: boolean()
-  defp consecutive_count(values, count) do
-    case values do
-      [a, b | rest] when b == a + 1 -> consecutive_count([b | rest], count - 1)
-      [_ | rest] when count > 1 -> consecutive_count(rest, 5)
-      _ when count <= 1 -> true
-      _ -> false
-    end
-  end
-
-  @spec count_num(val_count(), non_neg_integer()) :: non_neg_integer()
-  defp count_num(value_counts, count) do
-    Enum.count(value_counts, fn {_, %{count: ^count}} -> true; _ -> false end)
-  end
-
-  @spec four_of_a_kind?(val_count()) :: boolean()
-  def four_of_a_kind?(value_counts) do
-    count_num(value_counts, 4) == 1
-  end
-
-  @spec three_of_a_kind?(val_count()) :: boolean()
-  def three_of_a_kind?(value_counts) do
-    count_num(value_counts, 3) >= 1
-  end
-
-  @spec two_pair?(val_count()) :: boolean()
-  def two_pair?(value_counts) do
-    count_num(value_counts, 2) >= 2
-  end
-
-  @spec one_pair?(val_count()) :: boolean()
-  def one_pair?(value_counts) do
-    count_num(value_counts, 2) >= 1
-  end
-
-  @spec high_card?() :: true
-  def high_card? do
-    true
-  end
-
-  @spec get_value_counts(Card.deck()) :: val_count()
-  def get_value_counts(cards) do
+  @spec hand_rank(Card.deck()) :: %{rank: integer(), high_card: Card.t()}
+  def hand_rank(cards) do
     cards
-    |> Enum.reduce(%{}, fn (%Card{value: value, suite: suite}, acc) ->
-        count = Map.get(acc, value, %{count: 0, suite_rank: 0})
-        new_count = %{count | count: count.count + 1, suite_rank: max(count.suite_rank, @suite_rank[suite])}
-        Map.put(acc, value, new_count)
-      end)
+    |> sort_cards()
+    |> process_sorted_cards()
+    |> determine_rank()
   end
 
   @spec compare_card_value(Card.t(), Card.t()) :: integer()
@@ -111,23 +32,23 @@ defmodule Poker.HandRanking do
   end
 
   @spec sort_cards(Card.deck(), boolean()) :: Card.deck()
-  @spec sort_cards(Card.deck()) :: Card.deck()
   def sort_cards(cards, ascending \\ true) do
     sorted = Enum.sort(cards, &compare_card/2)
-    unless ascending do
-      Enum.reverse(sorted)
-    else
+
+    if ascending do
       sorted
+    else
+      Enum.reverse(sorted)
     end
   end
 
   @spec process_sorted_cards(Card.deck()) :: %{
-    sorted_cards: Card.deck(),
-    is_flush: boolean(),
-    is_straight: boolean(),
-    value_counts: val_count(),
-    high_card: Card.t()
-  }
+          sorted_cards: Card.deck(),
+          is_flush: boolean(),
+          is_straight: boolean(),
+          value_counts: list(%{value: integer(), count: integer()}),
+          high_card: Card.t()
+        }
   def process_sorted_cards(sorted_cards) do
     %{
       sorted_cards: sorted_cards,
@@ -160,8 +81,78 @@ defmodule Poker.HandRanking do
     ]
 
     rank = Enum.find_value(rank_conditions, fn {rank, condition} -> if condition.(), do: rank end)
-
     %{rank: rank, high_card: high_card}
   end
 
+  @spec is_flush?(Card.deck()) :: boolean()
+  def is_flush?(cards) do
+    cards
+    |> Enum.group_by(& &1.suite)
+    |> Enum.any?(fn {_suite, group} -> length(group) >= 5 end)
+  end
+
+  @spec is_straight?(Card.deck()) :: boolean()
+  def is_straight?(cards) do
+    cards
+    |> Enum.map(& &1.value)
+    |> Enum.uniq()
+    |> Enum.sort()
+    |> consecutive_count(5)
+  end
+
+  @spec consecutive_count(list(integer()), integer()) :: boolean()
+  defp consecutive_count(values, count) do
+    case values do
+      [a, b | rest] when b == a + 1 -> consecutive_count([b | rest], count - 1)
+      [_ | rest] when count > 1 -> consecutive_count(rest, 5)
+      _ when count <= 1 -> true
+      _ -> false
+    end
+  end
+
+  @spec royal_flush?(boolean(), boolean(), Card.deck()) :: boolean()
+  def royal_flush?(is_flush, is_straight, sorted_cards),
+    do: straight_flush?(is_flush, is_straight) and hd(sorted_cards).value == 13
+
+  @spec straight_flush?(boolean(), boolean()) :: boolean()
+  def straight_flush?(is_flush, is_straight), do: is_flush and is_straight
+
+  @spec four_of_a_kind?(list(map())) :: boolean()
+  def four_of_a_kind?(value_counts),
+    do: Enum.any?(value_counts, &(&1.count == 4))
+
+  @spec full_house?(list(map())) :: boolean()
+  def full_house?(value_counts) do
+    value_counts
+    |> Enum.map(& &1.count)
+    |> Enum.sort()
+    |> case do
+      [2, 3] -> true
+      [3, 3] -> true
+      _ -> false
+    end
+  end
+
+  @spec three_of_a_kind?(list(map())) :: boolean()
+  def three_of_a_kind?(value_counts),
+    do: Enum.any?(value_counts, &(&1.count == 3))
+
+  @spec two_pair?(list(map())) :: boolean()
+  def two_pair?(value_counts),
+    do: Enum.count(value_counts, &(&1.count == 2)) >= 2
+
+  @spec one_pair?(list(map())) :: boolean()
+  def one_pair?(value_counts),
+    do: Enum.any?(value_counts, &(&1.count == 2))
+
+  @spec high_card?() :: true
+  def high_card?(), do: true
+
+  @spec get_value_counts(Card.deck()) :: list(%{value: integer(), count: integer()})
+  def get_value_counts(cards) do
+    cards
+    |> Enum.group_by(& &1.value)
+    |> Enum.map(fn {value, group} -> %{value: value, count: length(group)} end)
+    |> Enum.sort_by(& &1.count, :desc)
+  end
 end
